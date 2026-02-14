@@ -1,7 +1,36 @@
 const express = require('express');
+const connectDB = require('./config/database');
 const app = express();
+const User = require('./models/user');
 
-const { adminAuth, userAuth } = require('./middlewares/auth');
+app.post("/signup", async (req, res) => {
+    const userObj = {
+        firstName: "Sourav",
+        lastName: "Ganguly",
+        emailID: "sourav.ganguly@gmail.com",
+        password: "sourav123",
+    }
+    //creating a new instance of the User model
+    const user = new User(userObj);
+
+    try{
+        await user.save();
+        res.send("User added successfully!!");
+    } catch(err) {
+        res.status(400).send("Error adding user: " + err.message);
+    }
+});
+
+connectDB().then(() => {
+    console.log("Database connection established... ");
+    app.listen(7777, () => {
+        console.log('Server is running on port 7777');
+    });
+}).catch((error) => {
+    console.log("Error connecting to MongoDB!!", error);
+});
+
+//const { adminAuth, userAuth } = require('./middlewares/auth');
 
 /*app.use("/hello/2", (req, res) => {
     res.send('Abracadabra!');
@@ -36,7 +65,7 @@ app.delete("/user", (req, res) => {
     res.send('Hello from the Server!');
 });*/
 
-app.use(
+/*app.use(
     "/abhijoy", [
     (req, res, next) => {
         //Route handler for the path "/abhijoy"
@@ -68,12 +97,12 @@ app.use(
         res.send('5th response!!');
         //next();
     }
-]);
+]);*/
 
 //GET /users => It checks all the app.xxx("matching route") functions
 //GET /users => middleware chain => request handler
 
-app.use("/lalholud", (req, res, next) => {
+/*app.use("/lalholud", (req, res, next) => {
     console.log("Handling the route lalholud!!");
     res.send('1st route handler!');
     //next();
@@ -101,23 +130,23 @@ app.post("/user/login", (req, res) => {
 
 app.get("/user/data", userAuth, (req, res) => {
     res.send('User data sent!!');
-});
+});*/
 
 
-app.get("/getUserData", (req, res) => {
+/*app.get("/getUserData", (req, res) => {
     //try {
         throw new Error("SDSDFSDF!!");
         res.send('User data sent!!');
     //} catch (err) {
         //res.status(500).send('Some error please contact support team!!');
     //}
-});
+});*/
 
-app.use("/", (err, req, res, next) => {
+/*app.use("/", (err, req, res, next) => {
     if (err) {
         res.status(500).send('Something went wrong!!');
     }
-});
+});*/
 
 //anything that has "a" in the path will be handled by this API
 /*app.get(/a/, (req, res) => {
@@ -132,8 +161,3 @@ app.use("/", (err, req, res, next) => {
 // app.use("/", (req, res) => {
 //     res.send('Namaste Abhijoy Samaddar!');
 // });
-
-app.listen(7777, () => {
-    console.log('Server is running on port 7777');
-});
-
