@@ -2,28 +2,74 @@ const express = require('express');
 const connectDB = require('./config/database');
 const app = express();
 const User = require('./models/user');
+const { validateSignUpData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
 
 // This line is used to parse incoming JSON payloads in the request body. It allows the server to understand and handle JSON data sent by clients in POST, PUT, or PATCH requests. By using express.json(), the server can access the parsed JSON data through req.body in route handlers, making it easier to work with JSON data in the application.
 app.use(express.json()); 
 
+//Signup API
 app.post("/signup", async (req, res) => {
-    /*console.log(req.body);
-    const userObj = {
+    /*const userObj = {
         firstName: "Sourav",
         lastName: "Ganguly",
         emailID: "sourav.ganguly@gmail.com",
         password: "sourav123",
     }*/
-    //creating a new instance of the User model
-    const user = new User(req.body);
-
     try{
+        //Validation of data
+        validateSignUpData(req);
+
+        console.log(req.body);
+        //Encrypt the password
+        const {firstName, lastName, emailID, password, gender} = req.body;
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        //console.log(passwordHash);
+
+        //creating a new instance of the User model
+        const user = new User({
+            firstName,
+            lastName,
+            emailID,
+            password: passwordHash,
+            gender,
+        });
+
         //saving the user object to the database using the save() method provided by Mongoose. This method is asynchronous and returns a promise, which is why we use the await keyword to wait for the operation to complete before proceeding. If the save operation is successful, it will persist the user data in the MongoDB database. If there is an error during the save process, it will throw an error that can be caught and handled in the catch block.
         await user.save();
         res.send("User added successfully!!");
     } catch(err) {
         //If there is an error during the save process, it will catch the error and send a response with a status code of 400 (Bad Request) along with an error message that includes the details of the error. This allows the client to understand that there was an issue with adding the user and provides information about what went wrong.
         res.status(400).send("Error adding user: " + err.message);
+    }
+});
+
+//Login API
+app.post("/login", async (req, res) => {
+    try{
+        const { emailId, password } = req.body;
+
+        const user = await User.findOne({ emailID: emailId });
+        if(!user){
+            throw new Error("Email ID is not present in DB");
+
+            //always use below message in real time, I am using above message just for practice
+            //throw new Error("Invalid credentials"); //or use below
+            //throw new Error("Email id or password is incorrect");
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(isPasswordValid){
+            res.send("Login successful!");
+        } else {
+            throw new Error("Password is not correct!");
+            //throw new Error("Invalid credentials");
+        }
+
+    } 
+    catch(err) {
+        res.status(400).send("Error: " + err.message);
     }
 });
 
