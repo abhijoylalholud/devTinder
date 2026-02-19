@@ -6,6 +6,7 @@ const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth");
 
 // This line is used to parse incoming JSON payloads in the request body. It allows the server to understand and handle JSON data sent by clients in POST, PUT, or PATCH requests. By using express.json(), the server can access the parsed JSON data through req.body in route handlers, making it easier to work with JSON data in the application.
 app.use(express.json());
@@ -20,16 +21,12 @@ app.post("/signup", async (req, res) => {
         password: "sourav123",
     }*/
     try{
-        //Validation of data
         validateSignUpData(req);
-
-        console.log(req.body);
-        //Encrypt the password
+        //console.log(req.body);
         const {firstName, lastName, emailID, password, gender} = req.body;
-
         const passwordHash = await bcrypt.hash(password, 10);
         //console.log(passwordHash);
-
+        
         //creating a new instance of the User model
         const user = new User({
             firstName,
@@ -56,55 +53,60 @@ app.post("/login", async (req, res) => {
         const user = await User.findOne({ emailID: emailId });
         if(!user){
             throw new Error("Email ID is not present in DB");
-
             //always use below message in real time, I am using above message just for practice
             //throw new Error("Invalid credentials"); //or use below
             //throw new Error("Email id or password is incorrect");
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        //const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await user.validatePassword(password);
         if(isPasswordValid){
             //Create a JWT(JSON Web Token)
-            const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790");
-            //console.log(token);
+            //const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790", { expiresIn: "7d" });
+            const token = await user.getJWT();
 
             //Add the token to cookie and send the response back to the server
-            res.cookie("token", token);
-
+            res.cookie("token", token, { expires: new Date(Date.now() + 8 * 3600000), }); //for 8 hours
             res.send("Login successful!");
         } else {
             throw new Error("Password is not correct!");
             //throw new Error("Invalid credentials");
         }
-
     } 
     catch(err) {
         res.status(400).send("Error: " + err.message);
     }
 });
 
-app.get("/profile", async (req, res) => {
+app.get("/profile", userAuth, async (req, res) => {
     try {
-        const cookies = req.cookies;
+        /*const cookies = req.cookies;
         const {token} = cookies;
         if(!token){
             throw new Error("Invalid token!");
-        }
-
+        }*/
         //Validate token
-        const decodedMessage = await jwt.verify(token, "DEV@Tinder$790");
-        const { _id } = decodedMessage;
+        /*const decodedMessage = await jwt.verify(token, "DEV@Tinder$790");
+        const { _id } = decodedMessage;*/
         //console.log("Logged In user is: " + _id);
-        const user = await User.findById(_id);
+
+        /*const user = await User.findById(_id);
         if(!user){
             throw new Error("User does not exist!");
-        }
-
+        }*/
+        const user = req.user;
         res.send(user);
     } 
     catch(err) {
         res.status(400).send("Error: " + err.message);
     }
+});
+
+//Send Connection Request
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+    const user = req.user;
+    console.log("Sending a connection request!");
+    res.send(user.firstName + " sent the connection request!");
 });
 
 //Get user by email
