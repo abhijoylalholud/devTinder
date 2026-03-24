@@ -74,6 +74,11 @@ const userSchema = new mongoose.Schema({
     }
 );
 
+//Creating indexes on the firstName and lastName fields to optimize search queries that filter by these fields. An index is a data structure that improves the speed of data retrieval operations on a database collection. By creating an index on these fields, the database can quickly locate and retrieve documents based on the values of firstName and lastName, which can significantly improve query performance when searching for users by their names.
+/*User.find({firstName: "Abhijoy", lastName: "Samaddar"});
+userSchema.index({firstName: 1, lastName: 1});
+userSchema.index({gender: 1});*/
+
 userSchema.methods.getJWT = async function() {
     const user = this;
     const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790", { expiresIn: "7d" });

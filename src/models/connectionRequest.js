@@ -4,10 +4,12 @@ const connectionRequestSchema = new mongoose.Schema(
     {
         fromUserId: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "User", //reference to the User collection
             required: true
         },
         toUserId: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true
         },
         status: {
@@ -23,6 +25,11 @@ const connectionRequestSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
+connectionRequestSchema.index({
+    fromUserId: 1, // Ascending order, for efficient querying of connection requests by the sender, for descending order use -1
+    toUserId: 1
+});
 
 connectionRequestSchema.pre("save", function(next){
     const connectionRequest = this;
